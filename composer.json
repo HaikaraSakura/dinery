@@ -1,0 +1,12 @@
+{
+    "name": "haikara/di-forklift",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Haikara\\DiForklift\\": "src/"
+        }
+    },
+    "require": {
+        "psr/container": "^2.0"
+    }
+}
