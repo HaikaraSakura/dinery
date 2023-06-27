@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Haikara\DiForklift;
 
+use Haikara\DiForklift\Exceptions\ContainerException;
+use Haikara\DiForklift\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
+use ReflectionClass;
+use ReflectionParameter;
 
 class Container implements ContainerInterface
 {
@@ -22,7 +26,25 @@ class Container implements ContainerInterface
 
     public function get(string $id): mixed
     {
-        return $this->dependencies[$id] ??= $this->definitions[$id];
+        if (isset($this->dependencies[$id])) {
+            return $this->dependencies[$id];
+        }
+
+        if (isset($this->definitions[$id])) {
+            $this->dependencies[$id] = $this->definitions[$id]();
+        }
+
+
+        if (class_exists($id)) {
+            $params = $this->getDependenciesFromReflectionClass(new ReflectionClass($id));
+            $this->dependencies[$id] = new $id(...$params);
+        }
+
+        if (!isset($this->dependencies[$id])) {
+            throw new NotFoundException();
+        }
+
+        return $this->dependencies[$id];
     }
 
     public function has(string $id): bool
@@ -32,5 +54,51 @@ class Container implements ContainerInterface
 
     public function add(string $id, mixed $definition): void {
         $this->definitions[$id] = $definition;
+    }
+
+    /**
+     * ReflectionClassを分析し、クラスのインスタンス化に必要な依存性を取り揃える
+     * @param ReflectionClass $ref_class
+     * @return array
+     */
+    protected function getDependenciesFromReflectionClass(ReflectionClass $ref_class): array
+    {
+        if (!$ref_class->isInstantiable()) {
+            throw new ContainerException;
+        }
+
+        $ref_constructor = $ref_class->getConstructor();
+
+        if ($ref_constructor === null) {
+            return [];
+        }
+
+        $params = [];
+
+        foreach ($ref_constructor->getParameters() as $ref_param) {
+            $param_name = $ref_param->getName();
+            $params[$param_name] = $this->getDependency($ref_param);
+        }
+
+        return $params;
+    }
+
+    /**
+     * ReflectionParameterを分析し、必要な依存性を取得する
+     * @param ReflectionParameter $ref_param
+     * @return mixed
+     */
+    protected function getDependency(ReflectionParameter $ref_param)
+    {
+        $ref_type = $ref_param->getType();
+
+        // 型が指定されていなければ依存解決エラー
+        if ($ref_type === null) {
+            throw new ContainerException;
+        }
+
+        $type_name = $ref_type->getName();
+
+        return $this->get($type_name);
     }
 }
