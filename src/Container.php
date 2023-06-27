@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Haikara\DiForklift;
 
+use Haikara\DiForklift\Attributes\Inject;
 use Haikara\DiForklift\Exceptions\ContainerException;
 use Haikara\DiForklift\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
@@ -92,6 +93,12 @@ class Container implements ContainerInterface
     {
         $ref_type = $ref_param->getType();
 
+        if ($this->hasInjectAttribute($ref_param)) {
+            $inject = $this->getInjectAttributeInstance($ref_param);
+            $dependency_name = $inject->getId();
+            return $this->get($dependency_name);
+        }
+
         // 型が指定されていなければ依存解決エラー
         if ($ref_type === null) {
             throw new ContainerException;
@@ -100,5 +107,34 @@ class Container implements ContainerInterface
         $type_name = $ref_type->getName();
 
         return $this->get($type_name);
+    }
+
+    /**
+     * 引数がInject属性を持っているかどうか
+     *
+     * @param ReflectionParameter $ref_param
+     * @return boolean
+     */
+    protected function hasInjectAttribute(ReflectionParameter $ref_param): bool
+    {
+        return isset($ref_param->getAttributes(Inject::class)[0]);
+    }
+
+    /**
+     * 引数が持っているInject属性のインスタンスを返す
+     *
+     * @param ReflectionParameter $ref_param
+     * @return ?Inject
+     */
+    protected function getInjectAttributeInstance(ReflectionParameter $ref_param): ?Inject
+    {
+        $ref_attr = $ref_param->getAttributes(Inject::class)[0];
+        $attr_inject = $ref_attr->newInstance();
+
+        if ($attr_inject instanceof Inject) {
+            return $attr_inject;
+        } else {
+            return null;
+        }
     }
 }
