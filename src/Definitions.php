@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Haikara\DiForklift;
 
+use Haikara\DiForklift\Exceptions\ContainerException;
+use Haikara\DiForklift\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -19,6 +21,10 @@ class Definitions implements ContainerInterface
 
     public function get(string $id): mixed
     {
+        if (!$this->has($id)) {
+            throw new NotFoundException;
+        }
+
         return $this->definitions[$id]();
     }
 
@@ -29,6 +35,10 @@ class Definitions implements ContainerInterface
 
     public function add(string $id, callable $definition): void
     {
+        if ($this->has($id)) {
+            throw new ContainerException('生成処理の定義を上書きすることは許可されていません。');
+        }
+
         $this->definitions[$id] = $definition;
     }
 }

@@ -7,6 +7,7 @@ namespace Haikara\DiForklift;
 use Haikara\DiForklift\Attributes\Inject;
 use Haikara\DiForklift\Exceptions\ContainerException;
 use Haikara\DiForklift\Exceptions\NotFoundException;
+use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -168,7 +169,7 @@ class Container implements ContainerInterface
         $ref_attrs = $ref_param->getAttributes(Inject::class);
 
         if ($ref_attrs === []) {
-            throw new ContainerException;
+            throw new LogicException;
         }
 
         return $ref_attrs[0]->newInstance();

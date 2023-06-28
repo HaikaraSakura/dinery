@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Haikara\DiForklift\Attributes\Inject;
+use Haikara\DiForklift\Container;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 class ClassA {
@@ -10,7 +13,11 @@ class ClassA {
 }
 
 class ClassB {
-    public function __construct(protected ClassCInterface $class_c) {
+    public function __construct(
+        #[Inject(ClassC::class)]
+        protected ClassCInterface $class_c,
+        protected ClassD $class_d
+    ) {
     }
 }
 
@@ -25,9 +32,7 @@ class ClassD {
 interface ClassCInterface {
 }
 
-$container = New \Haikara\DiForklift\Container;
-
-$container->add(ClassCInterface::class, fn () => new ClassC);
+$container = New Container;
 
 $container->add(ClassD::class);
 var_dump($container->has(ClassD::class));

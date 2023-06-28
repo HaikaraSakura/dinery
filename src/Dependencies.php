@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Haikara\DiForklift;
 
+use Haikara\DiForklift\Exceptions\NotFoundException;
+use LogicException;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -19,6 +21,10 @@ class Dependencies implements ContainerInterface
 
     public function get(string $id): mixed
     {
+        if (!$this->has($id)) {
+            throw new NotFoundException;
+        }
+
         return $this->dependencies[$id];
     }
 
@@ -29,6 +35,10 @@ class Dependencies implements ContainerInterface
 
     public function add(string $id, mixed $concrete): void
     {
+        if ($this->has($id)) {
+            throw new LogicException('Dependenciesに登録済みの値が与えられました。ライブラリの根本的なバグです。');
+        }
+
         $this->dependencies[$id] = $concrete;
     }
 }
