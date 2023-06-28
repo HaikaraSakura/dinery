@@ -1,13 +1,26 @@
 {
     "name": "haikara/di-forklift",
     "type": "library",
+    "config": {
+        "platform": {
+            "php": "7.4"
+        }
+    },
     "autoload": {
         "psr-4": {
             "Haikara\\DiForklift\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Haikara\\DiForkliftTest\\": "tests/"
+        }
+    },
     "require": {
         "php": "^7.4 || ^8.0",
         "psr/container": "^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
     }
 }
