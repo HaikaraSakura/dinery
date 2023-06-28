@@ -13,6 +13,7 @@ use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionNamedType;
 use ReflectionParameter;
 
 class Container implements ContainerInterface
@@ -124,6 +125,9 @@ class Container implements ContainerInterface
 
     /**
      * ReflectionParameterを分析し、必要な依存性を取得する
+     * Inject属性があれば参照、なければ型宣言から判別
+     * 型宣言もなければデフォルト値を返す
+     * デフォルト値もなければ依存解決エラー
      *
      * @param ReflectionParameter $ref_param
      * @return mixed
@@ -133,18 +137,32 @@ class Container implements ContainerInterface
     protected function getDependency(ReflectionParameter $ref_param): mixed
     {
         // Inject属性があれば参照
-        // Inject属性がなければ型宣言から判別
-        // 型が指定されていなければnull
-        $id = $this->hasInjectAttribute($ref_param)
-            ? $this->getInjectAttribute($ref_param)->getId()
-            : $ref_param->getType()?->getName();
-
-        // 型が指定されていなければ依存解決エラー
-        if ($id === null) {
-            throw new ContainerException;
+        if ($this->hasInjectAttribute($ref_param)) {
+            $id = $this->getInjectAttribute($ref_param)->getId();
+            return $this->get($id);
         }
 
-        return $this->get($id);
+        $ref_type = $ref_param->getType();
+
+        try {
+            // 引数の型が指定されていれば、IDとして依存性を取得
+            if ($ref_type instanceof ReflectionNamedType) {
+                $id = $ref_type->getName();
+                return $this->get($id);
+            } else {
+                $class_name = $ref_param->getDeclaringClass()->getName();
+                throw new ContainerException(
+                    "{$class_name}の依存関係を解決できませんでした。コンストラクタの引数{$ref_param->getName()}の型が指定されていません。引数の型を指定するか、デフォルト値を設定してください。"
+                );
+            }
+        } catch (ContainerException|NotFoundException $e) {
+            // デフォルト値が設定されていればそれを返す
+            if ($ref_param->isDefaultValueAvailable()) {
+                return $ref_param->getDefaultValue();
+            }
+
+            throw $e;
+        }
     }
 
     /**
