@@ -81,7 +81,7 @@ class Container implements ContainerInterface
      * @return void
      */
     public function add(string $id, mixed $definition = null): void {
-        $definition ??= fn () => $this->get($id);
+        $definition ??= fn () => $this->resolve($id);
         $this->definitions->add($id, $definition);
     }
 
