@@ -7,106 +7,143 @@ namespace Haikara\DiForklift;
 use Haikara\DiForklift\Attributes\Inject;
 use Haikara\DiForklift\Exceptions\ContainerException;
 use Haikara\DiForklift\Exceptions\NotFoundException;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
+use ReflectionMethod;
 use ReflectionParameter;
 
 class Container implements ContainerInterface
 {
     /**
      * 生成処理を格納する
-     * @var array
+     * @var Definitions
      */
-    protected array $definitions;
+    protected Definitions $definitions;
 
     /**
      * 生成された依存性を格納する
-     * @var array
+     * @var Dependencies
      */
-    protected array $dependencies;
+    protected Dependencies $dependencies;
 
+    public function __construct() {
+        $this->definitions = new Definitions;
+        $this->dependencies = new Dependencies;
+    }
+
+    /**
+     * @param string $id
+     * @return mixed
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
     public function get(string $id): mixed
     {
-        if (isset($this->dependencies[$id])) {
-            return $this->dependencies[$id];
+        // 未登録のIDなら自動解決
+        if (!$this->has($id)) {
+            $this->dependencies->add($id, $this->resolve($id));
         }
 
-        if (isset($this->definitions[$id])) {
-            $this->dependencies[$id] = $this->definitions[$id]();
+        // 生成済みではないが定義済みの場合、生成処理を実行
+        if (!$this->dependencies->has($id) && $this->definitions->has($id)) {
+            $this->dependencies->add($id, $this->definitions->get($id));
         }
 
-
-        if (class_exists($id)) {
-            $params = $this->getDependenciesFromReflectionClass(new ReflectionClass($id));
-            $this->dependencies[$id] = new $id(...$params);
+        // 生成済みならそれを返す
+        if ($this->dependencies->has($id)) {
+            return $this->dependencies->get($id);
         }
 
-        if (!isset($this->dependencies[$id])) {
-            throw new NotFoundException();
-        }
-
-        return $this->dependencies[$id];
+        throw new NotFoundException;
     }
 
+    /**
+     * IDが登録済みかどうか
+     *
+     * @param string $id
+     * @return bool
+     */
     public function has(string $id): bool
     {
-        return isset($this->dependencies[$id]) || isset($this->definitions[$id]);
+        // 生成済み、もしくは生成処理を定義済みならtrue
+        return $this->dependencies->has($id) || $this->definitions->has($id);
     }
 
-    public function add(string $id, mixed $definition): void {
-        $this->definitions[$id] = $definition;
+    /**
+     * 生成処理の登録。
+     * $definitionがnullなら$idに指定された値の生成処理を自動で登録する
+     *
+     * @param string $id
+     * @param mixed $definition
+     * @return void
+     */
+    public function add(string $id, mixed $definition = null): void {
+        $definition ??= fn () => $this->get($id);
+        $this->definitions->add($id, $definition);
     }
 
     /**
      * ReflectionClassを分析し、クラスのインスタンス化に必要な依存性を取り揃える
-     * @param ReflectionClass $ref_class
-     * @return array
+     *
+     * @param string $id
+     * @return object
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
-    protected function getDependenciesFromReflectionClass(ReflectionClass $ref_class): array
+    protected function resolve(string $id): object
     {
+        // IDがクラス文字列でなければ依存解決エラー
+        if (!class_exists($id)) {
+            throw new ContainerException;
+        }
+
+        $ref_class = new ReflectionClass($id);
+
+        // クラスがインスタンス化不可なら依存解決エラー
         if (!$ref_class->isInstantiable()) {
             throw new ContainerException;
         }
 
         $ref_constructor = $ref_class->getConstructor();
 
-        if ($ref_constructor === null) {
-            return [];
-        }
-
         $params = [];
 
-        foreach ($ref_constructor->getParameters() as $ref_param) {
-            $param_name = $ref_param->getName();
-            $params[$param_name] = $this->getDependency($ref_param);
+        // コンストラクタの引数から依存性を判断
+        if ($ref_constructor instanceof ReflectionMethod) {
+            foreach ($ref_constructor->getParameters() as $ref_param) {
+                $param_name = $ref_param->getName();
+                $params[$param_name] = $this->getDependency($ref_param);
+            }
         }
 
-        return $params;
+        return new $id(...$params);
     }
 
     /**
      * ReflectionParameterを分析し、必要な依存性を取得する
+     *
      * @param ReflectionParameter $ref_param
      * @return mixed
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
-    protected function getDependency(ReflectionParameter $ref_param)
+    protected function getDependency(ReflectionParameter $ref_param): mixed
     {
-        $ref_type = $ref_param->getType();
-
-        if ($this->hasInjectAttribute($ref_param)) {
-            $inject = $this->getInjectAttributeInstance($ref_param);
-            $dependency_name = $inject->getId();
-            return $this->get($dependency_name);
-        }
+        // Inject属性があれば参照
+        // Inject属性がなければ型宣言から判別
+        // 型が指定されていなければnull
+        $id = $this->hasInjectAttribute($ref_param)
+            ? $this->getInjectAttribute($ref_param)->getId()
+            : $ref_param->getType()?->getName();
 
         // 型が指定されていなければ依存解決エラー
-        if ($ref_type === null) {
+        if ($id === null) {
             throw new ContainerException;
         }
 
-        $type_name = $ref_type->getName();
-
-        return $this->get($type_name);
+        return $this->get($id);
     }
 
     /**
@@ -124,17 +161,16 @@ class Container implements ContainerInterface
      * 引数が持っているInject属性のインスタンスを返す
      *
      * @param ReflectionParameter $ref_param
-     * @return ?Inject
+     * @return Inject
      */
-    protected function getInjectAttributeInstance(ReflectionParameter $ref_param): ?Inject
+    protected function getInjectAttribute(ReflectionParameter $ref_param): Inject
     {
-        $ref_attr = $ref_param->getAttributes(Inject::class)[0];
-        $attr_inject = $ref_attr->newInstance();
+        $ref_attrs = $ref_param->getAttributes(Inject::class);
 
-        if ($attr_inject instanceof Inject) {
-            return $attr_inject;
-        } else {
-            return null;
+        if ($ref_attrs === []) {
+            throw new ContainerException;
         }
+
+        return $ref_attrs[0]->newInstance();
     }
 }
