@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Haikara\DiForklift;
 
+use ArrayObject;
 use Haikara\DiForklift\Exceptions\ContainerException;
 use Haikara\DiForklift\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
@@ -15,9 +16,13 @@ class Definitions implements ContainerInterface
 {
     /**
      * 生成処理を格納する
-     * @var callable[]
+     * @var ArrayObject<callable>
      */
-    protected array $definitions;
+    protected ArrayObject $definitions;
+
+    public function __construct() {
+        $this->definitions = new ArrayObject;
+    }
 
     public function get(string $id): mixed
     {

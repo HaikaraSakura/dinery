@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Haikara\DiForklift;
 
+use ArrayObject;
 use Haikara\DiForklift\Exceptions\NotFoundException;
 use LogicException;
 use Psr\Container\ContainerInterface;
@@ -14,10 +15,14 @@ use Psr\Container\ContainerInterface;
 class Dependencies implements ContainerInterface
 {
     /**
-     * 生成処理を格納する
-     * @var array
+     * 生成した依存性を格納する
+     * @var ArrayObject<callable>
      */
-    protected array $dependencies;
+    protected ArrayObject $dependencies;
+
+    public function __construct() {
+        $this->dependencies = new ArrayObject;
+    }
 
     public function get(string $id): mixed
     {
