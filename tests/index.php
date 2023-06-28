@@ -10,7 +10,6 @@ require_once __DIR__ . '/../vendor/autoload.php';
 class ClassA {
     public function __construct(
         protected ClassB $class_b,
-        #[Inject('b')]
         protected $text = 'a'
     ) {
     }

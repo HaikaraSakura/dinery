@@ -9,7 +9,6 @@ use Haikara\DiForklift\Exceptions\ContainerException;
 use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -28,9 +27,16 @@ class Container implements ContainerInterface
      */
     protected Dependencies $dependencies;
 
+    /**
+     * 生成されたReflectionClassのコンテナ
+     * @var ReflectionClasses
+     */
+    protected ReflectionClasses $reflections;
+
     public function __construct() {
         $this->definitions = new Definitions;
         $this->dependencies = new Dependencies;
+        $this->reflections = new ReflectionClasses;
     }
 
     /**
@@ -42,7 +48,13 @@ class Container implements ContainerInterface
     {
         // 未登録のIDなら自動解決
         if (!$this->has($id)) {
-            $this->dependencies->add($id, $this->resolve($id));
+            $concrete = $this->resolve($id);
+
+            if ($this->reflections->get($id)->isUserDefined()) {
+                $this->dependencies->add($id, $concrete);
+            }
+
+            return $concrete;
         }
 
         // 生成済みではないが定義済みの場合、生成処理を実行
@@ -92,7 +104,7 @@ class Container implements ContainerInterface
             throw new ContainerException;
         }
 
-        $ref_class = new ReflectionClass($id);
+        $ref_class = $this->reflections->get($id);
 
         // クラスがインスタンス化不可なら依存解決エラー
         if (!$ref_class->isInstantiable()) {
@@ -136,7 +148,7 @@ class Container implements ContainerInterface
 
         try {
             // 引数の型が指定されていれば、IDとして依存性を取得
-            if ($ref_type instanceof ReflectionNamedType) {
+            if ($ref_type instanceof ReflectionNamedType && !$ref_type->isBuiltin()) {
                 $id = $ref_type->getName();
                 return $this->get($id);
             }
