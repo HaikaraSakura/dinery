@@ -6,11 +6,9 @@ namespace Haikara\DiForklift;
 
 use Haikara\DiForklift\Attributes\Inject;
 use Haikara\DiForklift\Exceptions\ContainerException;
-use Haikara\DiForklift\Exceptions\NotFoundException;
 use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -39,7 +37,6 @@ class Container implements ContainerInterface
      * @param string $id
      * @return mixed
      * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      */
     public function get(string $id): mixed
     {
@@ -53,12 +50,7 @@ class Container implements ContainerInterface
             $this->dependencies->add($id, $this->definitions->get($id));
         }
 
-        // 生成済みならそれを返す
-        if ($this->dependencies->has($id)) {
-            return $this->dependencies->get($id);
-        }
-
-        throw new NotFoundException;
+        return $this->dependencies->get($id);
     }
 
     /**
@@ -92,7 +84,6 @@ class Container implements ContainerInterface
      * @param string $id
      * @return object
      * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      */
     protected function resolve(string $id): object
     {
@@ -132,7 +123,6 @@ class Container implements ContainerInterface
      * @param ReflectionParameter $ref_param
      * @return mixed
      * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      */
     protected function getDependency(ReflectionParameter $ref_param): mixed
     {
@@ -155,7 +145,7 @@ class Container implements ContainerInterface
             throw new ContainerException(
                 "{$class_name}の依存関係を解決できませんでした。コンストラクタの引数{$ref_param->getName()}の型が指定されていません。引数の型を指定するか、デフォルト値を設定してください。"
             );
-        } catch (ContainerException|NotFoundException $e) {
+        } catch (ContainerException $e) {
             // デフォルト値が設定されていればそれを返す
             if ($ref_param->isDefaultValueAvailable()) {
                 return $ref_param->getDefaultValue();
