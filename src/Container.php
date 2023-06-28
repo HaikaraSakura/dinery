@@ -149,12 +149,12 @@ class Container implements ContainerInterface
             if ($ref_type instanceof ReflectionNamedType) {
                 $id = $ref_type->getName();
                 return $this->get($id);
-            } else {
-                $class_name = $ref_param->getDeclaringClass()->getName();
-                throw new ContainerException(
-                    "{$class_name}の依存関係を解決できませんでした。コンストラクタの引数{$ref_param->getName()}の型が指定されていません。引数の型を指定するか、デフォルト値を設定してください。"
-                );
             }
+
+            $class_name = $ref_param->getDeclaringClass()->getName();
+            throw new ContainerException(
+                "{$class_name}の依存関係を解決できませんでした。コンストラクタの引数{$ref_param->getName()}の型が指定されていません。引数の型を指定するか、デフォルト値を設定してください。"
+            );
         } catch (ContainerException|NotFoundException $e) {
             // デフォルト値が設定されていればそれを返す
             if ($ref_param->isDefaultValueAvailable()) {
