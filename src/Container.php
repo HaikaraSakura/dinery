@@ -151,7 +151,7 @@ class Container implements ContainerInterface
      * 引数がInject属性を持っているかどうか
      *
      * @param ReflectionParameter $ref_param
-     * @return boolean
+     * @return bool
      */
     protected function hasInjectAttribute(ReflectionParameter $ref_param): bool
     {
