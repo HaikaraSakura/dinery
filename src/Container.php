@@ -48,13 +48,7 @@ class Container implements ContainerInterface
     {
         // 未登録のIDなら自動解決
         if (!$this->has($id)) {
-            $concrete = $this->resolve($id);
-
-            if ($this->reflections->get($id)->isUserDefined()) {
-                $this->dependencies->add($id, $concrete);
-            }
-
-            return $concrete;
+            $this->dependencies->add($id, $this->resolve($id));
         }
 
         // 生成済みではないが定義済みの場合、生成処理を実行
