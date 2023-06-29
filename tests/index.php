@@ -29,25 +29,39 @@ class ClassC implements ClassCInterface{
 }
 
 class ClassD {
+    public function __construct(
+        public DateTimeImmutable $date_1,
+        public DateTimeImmutable $date_2,
+    ) {
+    }
 }
 
 interface ClassCInterface {
+
 }
 
 $container = New Container;
+$container->instanceReuse(false);
+//
+// $container->add(ClassCInterface::class, fn () => new ClassC);
+// $container->add('b', fn () => 'b');
+//
+// $container->add(ClassD::class);
+// var_dump($container->has(ClassD::class));
+//
+// var_dump($container->get(ClassA::class));
+//
+// var_dump($container->get(ClassA::class) === $container->get(ClassA::class));
+//
+$container->add(DateTimeImmutable::class);
+//
+// print_r($container->get(DateTimeImmutable::class));
+// sleep(1);
+// print_r($container->get(DateTimeImmutable::class));
 
-$container->add(ClassCInterface::class, fn () => new ClassC);
-$container->add('b', fn () => 'b');
 
-$container->add(ClassD::class);
-var_dump($container->has(ClassD::class));
+$class_d = $container->get(ClassD::class);
 
-var_dump($container->get(ClassA::class));
-
-var_dump($container->get(ClassA::class) === $container->get(ClassA::class));
-
-$container->addEach(DateTimeImmutable::class);
-
-print_r($container->get(DateTimeImmutable::class));
-sleep(1);
-print_r($container->get(DateTimeImmutable::class));
+var_dump(spl_object_id($class_d->date_1) === spl_object_id($class_d->date_2));
+var_dump($class_d->date_1);
+var_dump($class_d->date_2);
