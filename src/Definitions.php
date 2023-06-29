@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Haikara\Dinery;
 
 use ArrayObject;
+use Closure;
 use Haikara\Dinery\Exceptions\ContainerException;
 use Haikara\Dinery\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
@@ -16,7 +17,7 @@ class Definitions implements ContainerInterface
 {
     /**
      * 生成処理を格納する
-     * @var ArrayObject<callable>
+     * @var ArrayObject<Closure>
      */
     protected ArrayObject $definitions;
 
@@ -24,13 +25,13 @@ class Definitions implements ContainerInterface
         $this->definitions = new ArrayObject;
     }
 
-    public function get(string $id): mixed
+    public function get(string $id): callable
     {
         if (!$this->has($id)) {
             throw new NotFoundException;
         }
 
-        return $this->definitions[$id]();
+        return $this->definitions[$id];
     }
 
     public function has(string $id): bool
@@ -45,5 +46,13 @@ class Definitions implements ContainerInterface
         }
 
         $this->definitions[$id] = $definition;
+    }
+
+    public function addReuse(string $id, Closure $definition) {
+        if ($this->has($id)) {
+            throw new ContainerException('生成処理の定義を上書きすることは許可されていません。');
+        }
+
+        $this->definitions[$id] = new DefinitionReuse($definition);
     }
 }

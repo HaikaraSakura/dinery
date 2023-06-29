@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Haikara\Dinery;
 
+use Closure;
 use Haikara\Dinery\Attributes\Inject;
 use Haikara\Dinery\Exceptions\ContainerException;
 use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -33,6 +35,8 @@ class Container implements ContainerInterface
      */
     protected ReflectionClasses $reflections;
 
+    protected bool $instance_reuse = true;
+
     public function __construct() {
         $this->definitions = new Definitions;
         $this->dependencies = new Dependencies;
@@ -43,17 +47,31 @@ class Container implements ContainerInterface
      * @param string $id
      * @return mixed
      * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
     public function get(string $id): mixed
     {
-        // 未登録のIDなら自動解決
+        // 未登録のIDなら自動解決を試みる
         if (!$this->has($id)) {
-            $this->dependencies->add($id, $this->resolve($id));
+            $dependency = $this->resolve($id);
+
+            if ($this->instance_reuse) {
+                $this->dependencies->add($id, $dependency);
+            } else {
+                return $dependency;
+            }
         }
 
         // 生成済みではないが定義済みの場合、生成処理を実行
         if (!$this->dependencies->has($id) && $this->definitions->has($id)) {
-            $this->dependencies->add($id, $this->definitions->get($id));
+            $definition = $this->definitions->get($id);
+            $dependency = $definition();
+
+            if ($definition instanceof DefinitionReuse) {
+                $this->dependencies->add($id, $dependency);
+            } else {
+                return $dependency;
+            }
         }
 
         return $this->dependencies->get($id);
@@ -76,12 +94,37 @@ class Container implements ContainerInterface
      * $definitionがnullなら$idに指定された値の生成処理を自動で登録する
      *
      * @param string $id
-     * @param mixed $definition
+     * @param ?callable $definition
      * @return void
      */
-    public function add(string $id, mixed $definition = null): void {
+    public function add(string $id, ?callable $definition = null): void {
+        $this->instance_reuse
+            ? $this->addReuse($id, $definition)
+            : $this->addEach($id, $definition);
+    }
+
+    public function addReuse(string $id, ?callable $definition = null): void {
         $definition ??= fn () => $this->resolve($id);
+
+        if (! $definition instanceof Closure) {
+            $definition = Closure::fromCallable($definition);
+        }
+
+        $this->definitions->add($id, new DefinitionReuse($definition));
+    }
+
+    public function addEach(string $id, ?callable $definition = null): void {
+        $definition ??= fn () => $this->resolve($id);
+
+        if (! $definition instanceof Closure) {
+            $definition = Closure::fromCallable($definition);
+        }
+
         $this->definitions->add($id, $definition);
+    }
+
+    public function instanceReuse(bool $reuse_flag): void {
+        $this->instance_reuse = $reuse_flag;
     }
 
     /**

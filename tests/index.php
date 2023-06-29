@@ -46,4 +46,8 @@ var_dump($container->get(ClassA::class));
 
 var_dump(spl_object_id($container->get(ClassA::class)) === spl_object_id($container->get(ClassA::class)));
 
+$container->addEach(DateTimeImmutable::class);
+
+print_r($container->get(DateTimeImmutable::class));
+sleep(1);
 print_r($container->get(DateTimeImmutable::class));
