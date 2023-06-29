@@ -1,4 +1,4 @@
-# DI-Forklift
+# Dinery
  
 PHPのDIコンテナです。  
 簡易的ですが、オートワイヤリングとAttributesで依存性を指定する機能を実装しています。  
