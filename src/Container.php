@@ -103,6 +103,13 @@ class Container implements ContainerInterface
             : $this->addEach($id, $definition);
     }
 
+    /**
+     * 生成処理の登録。インスタンスを使いまわしさせる。
+     *
+     * @param string $id
+     * @param callable|null $definition
+     * @return void
+     */
     public function addReuse(string $id, ?callable $definition = null): void {
         $definition ??= fn () => $this->resolve($id);
 
@@ -113,6 +120,13 @@ class Container implements ContainerInterface
         $this->definitions->add($id, new DefinitionReuse($definition));
     }
 
+    /**
+     * 生成処理の登録。インスタンスを使いまわしさせない。
+     *
+     * @param string $id
+     * @param callable|null $definition
+     * @return void
+     */
     public function addEach(string $id, ?callable $definition = null): void {
         $definition ??= fn () => $this->resolve($id);
 
@@ -123,6 +137,13 @@ class Container implements ContainerInterface
         $this->definitions->add($id, $definition);
     }
 
+    /**
+     * インスタンスを使いまわしさせるかどうかのデフォルト設定。
+     * デフォルトの設定にかかわらず、addReuseとaddEachは個別に機能する。
+     *
+     * @param bool $reuse_flag
+     * @return void
+     */
     public function instanceReuse(bool $reuse_flag): void {
         $this->instance_reuse = $reuse_flag;
     }

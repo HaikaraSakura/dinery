@@ -44,7 +44,7 @@ var_dump($container->has(ClassD::class));
 
 var_dump($container->get(ClassA::class));
 
-var_dump(spl_object_id($container->get(ClassA::class)) === spl_object_id($container->get(ClassA::class)));
+var_dump($container->get(ClassA::class) === $container->get(ClassA::class));
 
 $container->addEach(DateTimeImmutable::class);
 

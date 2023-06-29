@@ -48,7 +48,7 @@ class Definitions implements ContainerInterface
         $this->definitions[$id] = $definition;
     }
 
-    public function addReuse(string $id, Closure $definition) {
+    public function addReuse(string $id, Closure $definition): void {
         if ($this->has($id)) {
             throw new ContainerException('生成処理の定義を上書きすることは許可されていません。');
         }
