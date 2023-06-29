@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Haikara\DiForklift;
+namespace Haikara\Dinery;
 
 use ArrayObject;
-use Haikara\DiForklift\Exceptions\NotFoundException;
-use LogicException;
+use Haikara\Dinery\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Haikara\DiForklift\Attributes;
+namespace Haikara\Dinery\Attributes;
 
 use Attribute;
 

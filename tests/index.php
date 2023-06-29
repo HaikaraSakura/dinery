@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Haikara\DiForklift\Attributes\Inject;
-use Haikara\DiForklift\Container;
+use Haikara\Dinery\Attributes\Inject;
+use Haikara\Dinery\Container;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 

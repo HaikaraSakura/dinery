@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Haikara\DiForklift;
+namespace Haikara\Dinery;
 
-use Haikara\DiForklift\Attributes\Inject;
-use Haikara\DiForklift\Exceptions\ContainerException;
+use Haikara\Dinery\Attributes\Inject;
+use Haikara\Dinery\Exceptions\ContainerException;
 use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;

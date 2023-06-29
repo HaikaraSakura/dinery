@@ -1,5 +1,5 @@
 {
-    "name": "haikara/di-forklift",
+    "name": "haikara/dinery",
     "type": "library",
     "config": {
         "platform": {
@@ -8,12 +8,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Haikara\\DiForklift\\": "src/"
+            "Haikara\\Dinery\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Haikara\\DiForkliftTest\\": "tests/"
+            "Haikara\\DineryTest\\": "tests/"
         }
     },
     "require": {
