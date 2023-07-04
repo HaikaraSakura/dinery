@@ -41,9 +41,9 @@ interface ClassCInterface {
 }
 
 $container = New Container;
-$container->instanceReuse(false);
+$container->instanceReuse(true);
 //
-// $container->add(ClassCInterface::class, fn () => new ClassC);
+$container->add(ClassCInterface::class, fn () => new ClassC);
 // $container->add('b', fn () => 'b');
 //
 // $container->add(ClassD::class);
@@ -65,3 +65,9 @@ $class_d = $container->get(ClassD::class);
 var_dump(spl_object_id($class_d->date_1) === spl_object_id($class_d->date_2));
 var_dump($class_d->date_1);
 var_dump($class_d->date_2);
+
+
+$container->call(function (ClassA $class_a, array $args) {
+    print_r($class_a);
+    print_r($args);
+}, ['args' => ['year' => 2023, 'month' => 1]]);

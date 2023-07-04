@@ -11,6 +11,8 @@ use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
+use ReflectionFunction;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -149,6 +151,37 @@ class Container implements ContainerInterface
     }
 
     /**
+     * callableな値を依存解決したうえで関数実行し、その結果を返す。
+     * 足りない引数は$optionsに指定することができる
+     *
+     * @param callable $callback
+     * @param array $options
+     * @return mixed
+     * @throws ContainerExceptionInterface
+     */
+    public function call(callable $callback, array $options = []): mixed {
+        if (is_array($callback) && $callback[0] && $callback[1]) {
+            $callback = $callback[0] . '::' . $callback[1];
+        }
+
+        try {
+            $ref_func = new ReflectionFunction($callback);
+        } catch (ReflectionException) {
+            throw new ContainerException;
+        }
+
+        $params = $options;
+
+        // コンストラクタの引数から依存性を判断
+        foreach ($ref_func->getParameters() as $ref_param) {
+            $param_name = $ref_param->getName();
+            $params[$param_name] = $options[$param_name] ?? $this->getDependency($ref_param);
+        }
+
+        return $callback(...$params);
+    }
+
+    /**
      * ReflectionClassを分析し、クラスのインスタンス化に必要な依存性を取り揃える
      *
      * @param string $id
@@ -159,6 +192,7 @@ class Container implements ContainerInterface
     {
         // IDがクラス文字列でなければ依存解決エラー
         if (!class_exists($id)) {
+            echo $id;
             throw new ContainerException;
         }
 
