@@ -53,30 +53,31 @@ class Container implements ContainerInterface
      */
     public function get(string $id): mixed
     {
-        // 未登録のIDなら自動解決を試みる
-        if (!$this->has($id)) {
-            $dependency = $this->resolve($id);
-
-            if ($this->instance_reuse) {
-                $this->dependencies->add($id, $dependency);
-            } else {
-                return $dependency;
-            }
+        // 生成済みならそれを返す
+        if ($this->dependencies->has($id)) {
+            return $this->dependencies->get($id);
         }
 
         // 生成済みではないが定義済みの場合、生成処理を実行
-        if (!$this->dependencies->has($id) && $this->definitions->has($id)) {
+        if ($this->definitions->has($id)) {
             $definition = $this->definitions->get($id);
             $dependency = $definition();
 
             if ($definition instanceof DefinitionReuse) {
                 $this->dependencies->add($id, $dependency);
-            } else {
-                return $dependency;
             }
+
+            return $dependency;
         }
 
-        return $this->dependencies->get($id);
+        // 未登録のIDなら自動解決を試みる
+        $dependency = $this->resolve($id);
+
+        if ($this->instance_reuse) {
+            $this->dependencies->add($id, $dependency);
+        }
+
+        return $dependency;
     }
 
     /**

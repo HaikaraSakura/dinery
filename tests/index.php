@@ -40,10 +40,17 @@ interface ClassCInterface {
 
 }
 
+<<<<<<< Updated upstream
 $container = New Container;
 $container->instanceReuse(true);
 //
 $container->add(ClassCInterface::class, fn () => new ClassC);
+=======
+$container = new Container;
+$container->instanceReuse(true);
+
+// $container->add(ClassCInterface::class, fn () => new ClassC);
+>>>>>>> Stashed changes
 // $container->add('b', fn () => 'b');
 //
 // $container->add(ClassD::class);
@@ -58,7 +65,6 @@ $container->add(DateTimeImmutable::class);
 // print_r($container->get(DateTimeImmutable::class));
 // sleep(1);
 // print_r($container->get(DateTimeImmutable::class));
-
 
 $class_d = $container->get(ClassD::class);
 
