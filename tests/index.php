@@ -40,17 +40,11 @@ interface ClassCInterface {
 
 }
 
-<<<<<<< Updated upstream
-$container = New Container;
-$container->instanceReuse(true);
-//
-$container->add(ClassCInterface::class, fn () => new ClassC);
-=======
 $container = new Container;
 $container->instanceReuse(true);
 
 // $container->add(ClassCInterface::class, fn () => new ClassC);
->>>>>>> Stashed changes
+
 // $container->add('b', fn () => 'b');
 //
 // $container->add(ClassD::class);
