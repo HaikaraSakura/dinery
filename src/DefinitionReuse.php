@@ -12,7 +12,7 @@ class DefinitionReuse
 
     }
 
-    public function __invoke(): mixed {
-        return ($this->definition)();
+    public function get(): Closure {
+        return $this->definition;
     }
 }

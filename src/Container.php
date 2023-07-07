@@ -61,10 +61,13 @@ class Container implements ContainerInterface
         // 生成済みではないが定義済みの場合、生成処理を実行
         if ($this->definitions->has($id)) {
             $definition = $this->definitions->get($id);
-            $dependency = $definition();
 
+            // DefinitionReuseなら、依存性を再利用する
             if ($definition instanceof DefinitionReuse) {
+                $dependency = $this->call($definition->get());
                 $this->dependencies->add($id, $dependency);
+            } else {
+                $dependency = $this->call($definition);
             }
 
             return $dependency;
@@ -161,12 +164,8 @@ class Container implements ContainerInterface
      * @throws ContainerExceptionInterface
      */
     public function call(callable $callback, array $options = []): mixed {
-        if (is_array($callback) && $callback[0] && $callback[1]) {
-            $callback = $callback[0] . '::' . $callback[1];
-        }
-
         try {
-            $ref_func = new ReflectionFunction($callback);
+            $ref_func = new ReflectionFunction(Closure::fromCallable($callback));
         } catch (ReflectionException) {
             throw new ContainerException;
         }

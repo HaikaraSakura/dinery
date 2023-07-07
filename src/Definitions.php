@@ -25,7 +25,7 @@ class Definitions implements ContainerInterface
         $this->definitions = new ArrayObject;
     }
 
-    public function get(string $id): callable
+    public function get(string $id): callable|DefinitionReuse
     {
         if (!$this->has($id)) {
             throw new NotFoundException;
@@ -39,7 +39,7 @@ class Definitions implements ContainerInterface
         return isset($this->definitions[$id]);
     }
 
-    public function add(string $id, callable $definition): void
+    public function add(string $id, callable|DefinitionReuse $definition): void
     {
         if ($this->has($id)) {
             throw new ContainerException('生成処理の定義を上書きすることは許可されていません。');

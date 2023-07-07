@@ -43,7 +43,10 @@ interface ClassCInterface {
 $container = new Container;
 $container->instanceReuse(true);
 
-// $container->add(ClassCInterface::class, fn () => new ClassC);
+$container->add(ClassCInterface::class, function (DateTimeImmutable $datetime) {
+    print_r($datetime);
+    return  new ClassC;
+});
 
 // $container->add('b', fn () => 'b');
 //
@@ -62,9 +65,9 @@ $container->add(DateTimeImmutable::class);
 
 $class_d = $container->get(ClassD::class);
 
-var_dump(spl_object_id($class_d->date_1) === spl_object_id($class_d->date_2));
-var_dump($class_d->date_1);
-var_dump($class_d->date_2);
+// var_dump(spl_object_id($class_d->date_1) === spl_object_id($class_d->date_2));
+// var_dump($class_d->date_1);
+// var_dump($class_d->date_2);
 
 
 $container->call(function (ClassA $class_a, array $args) {
