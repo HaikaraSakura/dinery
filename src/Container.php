@@ -11,11 +11,13 @@ use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 
 class Container implements ContainerInterface
 {
@@ -182,7 +184,9 @@ class Container implements ContainerInterface
     }
 
     /**
-     * ReflectionClassを分析し、クラスのインスタンス化に必要な依存性を取り揃える
+     * ReflectionClassを分析。
+     * インスタンス化の際のコンストラクタインジェクションと、
+     * インスタンス化後のプロパティインジェクションで依存性を注入する。
      *
      * @param string $id
      * @return object
@@ -197,7 +201,16 @@ class Container implements ContainerInterface
         }
 
         $ref_class = $this->reflections->get($id);
+        $instance = $this->constructorInjection($ref_class);
 
+        return $this->propertyInjection($instance);
+    }
+
+    /**
+     * @param ReflectionClass $ref_class
+     * @return object
+     */
+    protected function constructorInjection(ReflectionClass $ref_class): object {
         // クラスがインスタンス化不可なら依存解決エラー
         if (!$ref_class->isInstantiable()) {
             throw new ContainerException;
@@ -215,7 +228,37 @@ class Container implements ContainerInterface
             }
         }
 
-        return new $id(...$params);
+        return new ($ref_class->getName())(...$params);
+    }
+
+    /**
+     * Inject属性が付与されたプロパティに依存性を注入し、インスタンスを返す
+     * @param object $object
+     * @return object
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    protected function propertyInjection(object $object): object
+    {
+        $ref_class = $this->reflections->get($object::class);
+
+        foreach ($ref_class->getProperties() as $ref_prop) {
+            if (! $this->hasInjectAttribute($ref_prop)) {
+                continue;
+            }
+
+            $id = $this->getInjectAttribute($ref_prop)->getId();
+            $dependency = $this->get($id);
+
+            if ($ref_prop->isPublic()) {
+                $prop_name = $ref_prop->getName();
+                $object->$prop_name = $dependency;
+            } else {
+                $ref_prop->setValue($object, $dependency);
+            }
+        }
+
+        return $object;
     }
 
     /**
@@ -224,19 +267,20 @@ class Container implements ContainerInterface
      * 型宣言もなければデフォルト値を返す
      * デフォルト値もなければ依存解決エラー
      *
-     * @param ReflectionParameter $ref_param
+     * @param ReflectionParameter|ReflectionProperty $ref_var
      * @return mixed
      * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
-    protected function getDependency(ReflectionParameter $ref_param): mixed
+    protected function getDependency(ReflectionParameter|ReflectionProperty $ref_var): mixed
     {
         // Inject属性があれば参照
-        if ($this->hasInjectAttribute($ref_param)) {
-            $id = $this->getInjectAttribute($ref_param)->getId();
+        if ($this->hasInjectAttribute($ref_var)) {
+            $id = $this->getInjectAttribute($ref_var)->getId();
             return $this->get($id);
         }
 
-        $ref_type = $ref_param->getType();
+        $ref_type = $ref_var->getType();
 
         try {
             // 引数の型が指定されていれば、IDとして依存性を取得
@@ -245,14 +289,14 @@ class Container implements ContainerInterface
                 return $this->get($id);
             }
 
-            $class_name = $ref_param->getDeclaringClass()->getName();
+            $class_name = $ref_var->getDeclaringClass()->getName();
             throw new ContainerException(
-                "{$class_name}の依存関係を解決できませんでした。コンストラクタの引数{$ref_param->getName()}の型が指定されていません。引数の型を指定するか、デフォルト値を設定してください。"
+                "{$class_name}の依存関係を解決できませんでした。コンストラクタの引数{$ref_var->getName()}の型が指定されていません。引数の型を指定するか、デフォルト値を設定してください。"
             );
         } catch (ContainerException $e) {
             // デフォルト値が設定されていればそれを返す
-            if ($ref_param->isDefaultValueAvailable()) {
-                return $ref_param->getDefaultValue();
+            if ($ref_var->isDefaultValueAvailable()) {
+                return $ref_var->getDefaultValue();
             }
 
             throw $e;
@@ -262,10 +306,10 @@ class Container implements ContainerInterface
     /**
      * 引数がInject属性を持っているかどうか
      *
-     * @param ReflectionParameter $ref_param
+     * @param ReflectionParameter|ReflectionProperty $ref_param
      * @return bool
      */
-    protected function hasInjectAttribute(ReflectionParameter $ref_param): bool
+    protected function hasInjectAttribute(ReflectionParameter|ReflectionProperty $ref_param): bool
     {
         return isset($ref_param->getAttributes(Inject::class)[0]);
     }
@@ -273,10 +317,10 @@ class Container implements ContainerInterface
     /**
      * 引数が持っているInject属性のインスタンスを返す
      *
-     * @param ReflectionParameter $ref_param
+     * @param ReflectionParameter|ReflectionProperty $ref_param
      * @return Inject
      */
-    protected function getInjectAttribute(ReflectionParameter $ref_param): Inject
+    protected function getInjectAttribute(ReflectionParameter|ReflectionProperty $ref_param): Inject
     {
         $ref_attrs = $ref_param->getAttributes(Inject::class);
 
